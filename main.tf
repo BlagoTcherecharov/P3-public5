@@ -46,7 +46,6 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-# Imported public IP created manually in the portal
 resource "azurerm_public_ip" "existing_pip" {
   name                = "Public-ip"
   resource_group_name = "student"
@@ -54,9 +53,6 @@ resource "azurerm_public_ip" "existing_pip" {
   allocation_method   = "Static"
   sku                 = "Standard"
 
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "azurerm_network_interface" "example" {
