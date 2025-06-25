@@ -95,3 +95,21 @@ resource "azurerm_linux_virtual_machine" "example" {
     version   = "latest"
   }
 }
+
+resource "azurerm_network_security_group" "nsg" {
+  name                = "vm-nsg"
+  location            = "East US"
+  resource_group_name = "student"
+
+  security_rule {
+    name                       = "SSH"
+    priority                   = 1001
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "22"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+}
