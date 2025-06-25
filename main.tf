@@ -1,0 +1,81 @@
+terraform {
+  backend "azurerm" {
+    resource_group_name  = "student"
+    storage_account_name = "studentexample"
+    container_name       = "student"
+    key                  = "terraform.tfstate"
+  }
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 3.0"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = var.azure_subscription_id
+}
+
+locals {
+  vms = {
+    "vm-001" = { vm_size = "Standard_B1s" }
+    "vm-002" = { vm_size = "Standard_B1s" }
+  }
+}
+
+resource "azurerm_virtual_network" "example" {
+  name                = "example-vnet"
+  address_space       = ["10.0.0.0/16"]
+  location            = "East US"
+  resource_group_name = "student"
+}
+
+resource "azurerm_subnet" "example" {
+  name                 = "example-subnet"
+  resource_group_name  = "student"
+  virtual_network_name = azurerm_virtual_network.example.name
+  address_prefixes     = ["10.0.1.0/24"]
+}
+
+resource "azurerm_network_interface" "example" {
+  for_each            = local.vms
+  name                = "nic-${each.key}"
+  location            = "East US"
+  resource_group_name = "student"
+
+  ip_configuration {
+    name                          = "internal"
+    subnet_id                     = azurerm_subnet.example.id
+    private_ip_address_allocation = "Dynamic"
+  }
+}
+
+resource "azurerm_linux_virtual_machine" "example" {
+  for_each                        = local.vms
+  name                            = each.key
+  resource_group_name             = "student"
+  location                        = "East US"
+  size                            = each.value.vm_size
+  admin_username                  = "azureuser"
+  admin_password                  = var.admin_password
+  disable_password_authentication = false
+
+  network_interface_ids = [
+    azurerm_network_interface.example[each.key].id
+  ]
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "UbuntuServer"
+    sku       = "18.04-LTS"
+    version   = "latest"
+  }
+}
