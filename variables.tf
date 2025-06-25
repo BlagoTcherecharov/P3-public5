@@ -5,6 +5,7 @@ variable "azure_subscription_id" {
 
 variable "admin_password" {
   type        = string
-  description = "Admin password for the virtual machine"
+  description = "Admin password for the virtual machines"
   sensitive   = true
 }
+

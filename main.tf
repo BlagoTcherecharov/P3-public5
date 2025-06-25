@@ -46,13 +46,17 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
-resource "azurerm_public_ip" "example" {
-  for_each            = { for name, cfg in local.vms : name => cfg if cfg.assign_public_ip }
-  name                = "pip-${each.key}"
-  location            = "East US"
+# Imported public IP created manually in the portal
+resource "azurerm_public_ip" "existing_pip" {
+  name                = "Public-ip"
   resource_group_name = "student"
-  allocation_method   = "Dynamic"
-  sku                 = "Basic"
+  location            = "East US"
+  allocation_method   = "Static"
+  sku                 = "Standard"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "azurerm_network_interface" "example" {
@@ -65,10 +69,7 @@ resource "azurerm_network_interface" "example" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.example.id
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = try(
-      azurerm_public_ip.example[each.key].id,
-      null
-    )
+    public_ip_address_id = each.value.assign_public_ip ? azurerm_public_ip.existing_pip.id : null
   }
 }
 
