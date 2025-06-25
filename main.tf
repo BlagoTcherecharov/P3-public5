@@ -21,8 +21,14 @@ provider "azurerm" {
 
 locals {
   vms = {
-    "vm-001" = { vm_size = "Standard_B1s" }
-    "vm-002" = { vm_size = "Standard_B1s" }
+    "vm-001" = {
+      vm_size          = "Standard_B1s"
+      assign_public_ip = true
+    }
+    "vm-002" = {
+      vm_size          = "Standard_B1s"
+      assign_public_ip = false
+    }
   }
 }
 
@@ -40,6 +46,15 @@ resource "azurerm_subnet" "example" {
   address_prefixes     = ["10.0.1.0/24"]
 }
 
+resource "azurerm_public_ip" "example" {
+  for_each            = { for name, cfg in local.vms : name => cfg if cfg.assign_public_ip }
+  name                = "pip-${each.key}"
+  location            = "East US"
+  resource_group_name = "student"
+  allocation_method   = "Dynamic"
+  sku                 = "Basic"
+}
+
 resource "azurerm_network_interface" "example" {
   for_each            = local.vms
   name                = "nic-${each.key}"
@@ -50,6 +65,10 @@ resource "azurerm_network_interface" "example" {
     name                          = "internal"
     subnet_id                     = azurerm_subnet.example.id
     private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = try(
+      azurerm_public_ip.example[each.key].id,
+      null
+    )
   }
 }
 
